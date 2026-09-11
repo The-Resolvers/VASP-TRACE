@@ -1,0 +1,12 @@
+[
+  {
+    "address": "1NDyJtNTjmwk5xPNhjgAMu4HDHigtobu1s",
+    "label": "Binance",
+    "actor": "Exchange"
+  },
+  {
+    "address": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
+    "label": "Kraken",
+    "actor": "Exchange"
+  }
+]

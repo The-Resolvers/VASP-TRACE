@@ -31,9 +31,13 @@ class GraphEngine:
         while queue:
             current_address, current_hop, path_features = queue.pop(0)
             
+            # Throttle to prevent hitting rate limits on live API providers
+            import asyncio
+            await asyncio.sleep(1.0)
+            
             is_source = current_address == source_address
             
-            # Fetch data from Blockchair
+            # Fetch data from Blockchair (now blockchain.info)
             address_data = await blockchair_client.get_address_details(current_address)
             
             # 1. Deterministic Mixer Filter

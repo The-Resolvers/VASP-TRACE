@@ -60,27 +60,11 @@ class GraphEngine:
             tag_data = await self._check_vasp_tag(current_address)
             has_tag = tag_data is not None
             vasp_name = tag_data["label"] if has_tag else None
-            
-            # Hardcode tags for the 429 demo topology so it looks exactly like the mock screenshot
-            if current_address == "1Hop2BinanceDeposit":
-                has_tag = True
-                vasp_name = "Binance"
-                is_exchange = True
-            elif current_address == "1Hop3KrakenDeposit":
-                has_tag = True
-                vasp_name = "Kraken"
-                is_exchange = True
-            elif current_address == "1Hop2MixerAddress":
-                is_mixer = True
-                is_exchange = False
             # 3. Proximity & Composite Scoring
             prox_score = calculate_proximity_score(current_hop)
             final_confidence = calculate_composite_score(prox_score, ml_prob, has_tag)
 
-            if current_address.startswith("1Hop1"):
-                is_exchange = False
-            else:
-                is_exchange = (final_confidence > 0.7 or has_tag) and not is_source
+            is_exchange = (final_confidence > 0.7 or has_tag) and not is_source
             
             node_details[current_address] = NodeDetails(
                 id=current_address,
@@ -99,36 +83,49 @@ class GraphEngine:
                     "hop": current_hop,
                     "shap_features": shap_features
                 })
-                # We usually stop tracing past an exchange gateway
-                # But for the 429 demo, we want to show the full mock chain
-                if current_address != "1Hop2BinanceDeposit":
-                    continue
+                # Normally we would stop tracing past an exchange gateway here
+                # But for the visual trace, we want to see the full multi-hop web!
 
             if current_hop < self.max_hops:
                 next_addresses = []
                 
                 if address_data and "txs" in address_data:
-                    for tx in address_data.get("txs", [])[:5]:
-                        for out_tx in tx.get("out", []):
-                            next_addr = out_tx.get("addr")
-                            if next_addr and next_addr != current_address:
-                                next_addresses.append(next_addr)
-                else:
-                    # Graceful fallback for API rate limit (429) -> Build the exact demo topology!
-                    if current_hop == 0:
-                        # Source node branches to two addresses
-                        next_addresses = ["1Hop1AddressExampleA", "1Hop1AddressExampleB"]
-                    elif current_address == "1Hop1AddressExampleA":
-                        # Branch A goes to a Mixer
-                        next_addresses = ["1Hop2MixerAddress"]
-                    elif current_address == "1Hop1AddressExampleB":
-                        # Branch B goes to Binance
-                        next_addresses = ["1Hop2BinanceDeposit"]
-                    elif current_address == "1Hop2BinanceDeposit":
-                        # Binance goes to Kraken
-                        next_addresses = ["1Hop3KrakenDeposit"]
-                    else:
-                        next_addresses = []
+                    # Apply Peeling Chain Heuristic to prevent graph explosion
+                    for tx in address_data.get("txs", []):
+                        inputs = tx.get("inputs", [])
+                        outputs = tx.get("outputs", [])
+                        
+                        total_in = sum([inp.get("output_value", 0) for inp in inputs])
+                        
+                        valid_outputs = []
+                        for out in outputs:
+                            addresses = out.get("addresses", [])
+                            if addresses:
+                                addr = addresses[0]
+                                if addr != current_address:
+                                    valid_outputs.append({
+                                        "address": addr,
+                                        "value": out.get("value", 0)
+                                    })
+                                    
+                        if not valid_outputs:
+                            continue
+                            
+                        # Heuristic 1: Peeling Chain Detection
+                        if len(valid_outputs) == 2 and total_in > 0:
+                            out1, out2 = valid_outputs
+                            if out1["value"] > total_in * 0.8:
+                                next_addresses.append(out2["address"])
+                                continue
+                            elif out2["value"] > total_in * 0.8:
+                                next_addresses.append(out1["address"])
+                                continue
+                                
+                        # Heuristic 2: Volume Pruning
+                        # Sort by value ascending (assume smaller amounts are the peeled transfers)
+                        valid_outputs.sort(key=lambda x: x["value"])
+                        for out in valid_outputs[:2]:
+                            next_addresses.append(out["address"])
                 
                 for next_addr in set(next_addresses): # deduplicate
                     if next_addr not in visited:

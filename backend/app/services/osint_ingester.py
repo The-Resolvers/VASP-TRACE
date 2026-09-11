@@ -12,10 +12,21 @@ class OSINTIngester:
         For demonstration, we inject a live payload of tags.
         """
         return [
-            {"address": "bc1q3zcdunpmqgn8enyxa3smu7fwrfvya35dz3uvjy", "label": "Binance Hot Wallet"},
-            {"address": "1NDyJtNTjmwk5xPNhjgAMu4HDHigtobu1s", "label": "Known Scammer (2019 Hack)"},
-            {"address": "bc1qq3mjl2ex6tdvkvd4udffqpmf7d3n362wyr5frj", "label": "Kraken Cold Storage"},
-            {"address": "1NchxF591wBDL2w5sjwAx9gXfg1X43pFot", "label": "Lazarus Group (Sanctioned)"},
+            # Known Exchanges
+            {"address": "bc1q3zcdunpmqgn8enyxa3smu7fwrfvya35dz3uvjy", "label": "Binance Hot Wallet", "actor": "Exchange"},
+            {"address": "1NDyJtNTjmwk5xPNhjgAMu4HDHigtobu1s", "label": "Binance", "actor": "Exchange"},
+            {"address": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo", "label": "Kraken", "actor": "Exchange"},
+            {"address": "bc1qq3mjl2ex6tdvkvd4udffqpmf7d3n362wyr5frj", "label": "Kraken Cold Storage", "actor": "Exchange"},
+            {"address": "1Kr6QSydW9bFQG1mXiPNNu6WpJGmUa9i1g", "label": "Bitfinex", "actor": "Exchange"},
+            {"address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "label": "Satoshi Nakamoto", "actor": "Entity"},
+            {"address": "bc1qcusujm8t4r6dg3pztnglcl3gg5mql2twjjy2x5", "label": "Gate.io", "actor": "Exchange"},
+            {"address": "bc1qzwjnny3acca2xrr6ucay4hxgdcqx3qj4t6a6n4", "label": "KuCoin Hot Wallet", "actor": "Exchange"},
+            {"address": "3Kzh9qAqVWQhEsfQz7zEQL1EuSx5tyNLsy", "label": "OKX Hot Wallet", "actor": "Exchange"},
+            {"address": "37ZaAWN8jWJkLToMibW16k11U6N6XbA6n3", "label": "Huobi", "actor": "Exchange"},
+            {"address": "1P5ZEDWTKTFGxQjZphgWPQUpe554WKDfHQ", "label": "Coinbase", "actor": "Exchange"},
+            {"address": "3FupZp77ySr7jYGLJCJQ3EQpa6jrggVvT1", "label": "Gemini", "actor": "Exchange"},
+            {"address": "1NchxF591wBDL2w5sjwAx9gXfg1X43pFot", "label": "Lazarus Group (Sanctioned)", "actor": "Hacker"},
+            {"address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", "label": "Twitter Hack 2020", "actor": "Hacker"},
         ]
 
     async def run(self):

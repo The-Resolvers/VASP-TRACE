@@ -1,0 +1,109 @@
+{
+  "nodes": [
+    {
+      "id": "1SourceWalletAddressExample",
+      "is_source": true,
+      "is_exchange": false,
+      "confidence_score": 0,
+      "is_mixer": false
+    },
+    {
+      "id": "1Hop1AddressExampleA",
+      "is_source": false,
+      "is_exchange": false,
+      "confidence_score": 0.3,
+      "is_mixer": false
+    },
+    {
+      "id": "1Hop1AddressExampleB",
+      "is_source": false,
+      "is_exchange": false,
+      "confidence_score": 0.2,
+      "is_mixer": false
+    },
+    {
+      "id": "1Hop2MixerAddress",
+      "is_source": false,
+      "is_exchange": false,
+      "confidence_score": 0.0,
+      "is_mixer": true
+    },
+    {
+      "id": "1Hop2BinanceDeposit",
+      "is_source": false,
+      "is_exchange": true,
+      "vasp_name": "Binance",
+      "confidence_score": 0.85,
+      "shap_features": {
+        "in_degree": 0.12,
+        "out_degree": -0.05,
+        "clustering": 0.22
+      },
+      "is_mixer": false
+    },
+    {
+      "id": "1Hop3KrakenDeposit",
+      "is_source": false,
+      "is_exchange": true,
+      "vasp_name": "Kraken",
+      "confidence_score": 0.92,
+      "shap_features": {
+        "in_degree": 0.25,
+        "out_degree": -0.01,
+        "clustering": 0.18
+      },
+      "is_mixer": false
+    }
+  ],
+  "links": [
+    {
+      "source": "1SourceWalletAddressExample",
+      "target": "1Hop1AddressExampleA",
+      "value": 1
+    },
+    {
+      "source": "1SourceWalletAddressExample",
+      "target": "1Hop1AddressExampleB",
+      "value": 1
+    },
+    {
+      "source": "1Hop1AddressExampleA",
+      "target": "1Hop2MixerAddress",
+      "value": 1
+    },
+    {
+      "source": "1Hop1AddressExampleB",
+      "target": "1Hop2BinanceDeposit",
+      "value": 1
+    },
+    {
+      "source": "1Hop2BinanceDeposit",
+      "target": "1Hop3KrakenDeposit",
+      "value": 1
+    }
+  ],
+  "leaderboard": [
+    {
+      "address": "1Hop3KrakenDeposit",
+      "vasp_name": "Kraken",
+      "confidence": 0.92,
+      "hop": 3,
+      "shap_features": {
+        "in_degree": 0.25,
+        "out_degree": -0.01,
+        "clustering": 0.18
+      }
+    },
+    {
+      "address": "1Hop2BinanceDeposit",
+      "vasp_name": "Binance",
+      "confidence": 0.85,
+      "hop": 2,
+      "shap_features": {
+        "in_degree": 0.12,
+        "out_degree": -0.05,
+        "clustering": 0.22
+      }
+    }
+  ]
+}

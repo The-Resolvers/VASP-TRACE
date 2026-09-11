@@ -4,7 +4,23 @@ from app.api import trace
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.config import settings
 
-app = FastAPI(title=settings.PROJECT_NAME)
+import asyncio
+from contextlib import asynccontextmanager
+from app.services.osint_ingester import osint_ingester
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await connect_to_mongo()
+    # Start the OSINT ingester in the background
+    ingester_task = asyncio.create_task(osint_ingester.run())
+    yield
+    # Shutdown
+    osint_ingester.stop()
+    await ingester_task
+    await close_mongo_connection()
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,14 +29,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("startup")
-async def startup_db_client():
-    await connect_to_mongo()
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    await close_mongo_connection()
 
 app.include_router(trace.router, prefix="/api", tags=["trace"])
 

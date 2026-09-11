@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { TraceResult, NodeDetails } from '../../types/trace.types';
+import { TraceResult } from '../../types/trace.types';
 import { getD3Config, getNodeColor, getNodeRadius } from '../../utils/d3Config';
 
 interface GraphVisualizerProps {
@@ -20,15 +20,18 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({ data }) => {
     // Clear previous
     d3.select(svgRef.current).selectAll('*').remove();
 
+    // 1. Setup the SVG
     const svg = d3.select(svgRef.current)
       .attr('width', width)
-      .attr('height', height)
-      .call(d3.zoom<SVGSVGElement, unknown>().on('zoom', (e) => {
-        g.attr('transform', e.transform);
-      }))
-      .append('g');
+      .attr('height', height);
 
+    // 2. Create the inner group 'g'
     const g = svg.append('g');
+
+    // 3. Attach the zoom handler to 'svg' and apply the transform to 'g'
+    svg.call(d3.zoom<SVGSVGElement, unknown>().on('zoom', (e) => {
+        g.attr('transform', e.transform);
+    }));
 
     const config = getD3Config(width, height);
 
@@ -67,7 +70,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({ data }) => {
           if (!e.active) simulation.alphaTarget(0);
           d.fx = null;
           d.fy = null;
-        })
+        }) as any
       );
 
     nodeGroup.append('circle')

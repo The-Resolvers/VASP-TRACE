@@ -73,7 +73,7 @@ class GraphEngine:
             prox_score = calculate_proximity_score(current_hop)
             final_confidence = calculate_composite_score(prox_score, ml_prob, has_tag)
 
-            is_exchange = (final_confidence > 0.7 or has_tag) and not is_source
+            is_exchange = (final_confidence > 0.45 or has_tag) and not is_source
             
             node_details[current_address] = NodeDetails(
                 id=current_address,
@@ -92,8 +92,8 @@ class GraphEngine:
                     "hop": current_hop,
                     "shap_features": shap_features
                 })
-                # Normally we would stop tracing past an exchange gateway here
-                # But for the visual trace, we want to see the full multi-hop web!
+                # Halt BFS on this branch because we found the exchange gateway
+                continue
 
             if current_hop < self.max_hops:
                 next_addresses = []

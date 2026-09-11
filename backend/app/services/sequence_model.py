@@ -23,12 +23,16 @@ class PathLSTM(nn.Module):
 
 def get_pretrained_model():
     model = PathLSTM()
-    model_path = "ml_artifacts/path_lstm.pth"
+    
+    # Use absolute path to guarantee we find ml_artifacts
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    model_path = os.path.join(base_dir, "ml_artifacts", "path_lstm.pth")
+    
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path, weights_only=True))
+        print(f"Loaded trained PathLSTM weights from {model_path}")
     else:
-        # Mock initialization for demo
-        pass
+        print(f"No trained weights found at {model_path}. Using random initialization.")
     
     model.eval()
     return model

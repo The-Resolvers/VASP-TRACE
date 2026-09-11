@@ -33,6 +33,15 @@ class BlockchainClient:
         num_txs = (h % 3) + 2 
         
         txs = []
+        
+        # 5% chance to generate a massive CoinJoin/Mixer mock
+        if h % 100 < 5:
+            mixer_tx = {
+                "inputs": [{"addresses": [address], "output_value": 500000}] * 12,
+                "outputs": [{"addresses": [f"bc1qmock_mixer_{i}"], "value": 41000} for i in range(12)]
+            }
+            txs.append(mixer_tx)
+            
         for i in range(num_txs):
             outputs = []
             # 1 to 3 outputs per tx

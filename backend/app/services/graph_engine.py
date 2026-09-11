@@ -1,14 +1,11 @@
 import networkx as nx
 from app.services.blockchair import blockchair_client
 from app.services.mixer_detector import detect_mixer
-from app.services.feature_extractor import extract_features
-from app.services.ml_scorer import ml_scorer
-from app.services.scoring_engine import calculate_proximity_score, calculate_composite_score
 from app.core.database import get_database
 from app.models.schemas import TraceResult, NodeDetails, EdgeDetails
 
 class GraphEngine:
-    def __init__(self, max_hops: int = 3):
+    def __init__(self, max_hops: int = 6):
         self.max_hops = max_hops
 
     async def _check_vasp_tag(self, address: str) -> dict | None:
@@ -19,8 +16,8 @@ class GraphEngine:
 
     async def trace(self, source_address: str) -> TraceResult:
         graph = nx.DiGraph()
-        # queue format: (address, hop, path_features_history)
-        queue = [(source_address, 0, [])]
+        # queue format: (address, hop)
+        queue = [(source_address, 0)]
         visited = set([source_address])
 
         # Track results for frontend
@@ -29,7 +26,7 @@ class GraphEngine:
         leaderboard = []
 
         while queue:
-            current_address, current_hop, path_features = queue.pop(0)
+            current_address, current_hop = queue.pop(0)
             
             # Throttle to prevent hitting rate limits on live API providers
             import asyncio
@@ -37,6 +34,12 @@ class GraphEngine:
             
             is_source = current_address == source_address
             
+            # Fetch live metadata FIRST to check tx_count
+            metadata = await blockchair_client.get_address_metadata(current_address)
+            tx_count = 0
+            if metadata and "chain_stats" in metadata:
+                tx_count = metadata["chain_stats"].get("tx_count", 0)
+                
             # Fetch data from Blockchair (now blockchain.info)
             address_data = await blockchair_client.get_address_details(current_address)
             
@@ -56,28 +59,23 @@ class GraphEngine:
             # Add to NetworkX to build graph topology
             graph.add_node(current_address)
 
-            # Extract features based on current topology
-            features = extract_features(graph, current_address)
-            current_path_features = path_features + [features]
-            
-            # 2. ML Behavioral Scoring (Path-Based)
-            ml_prob, shap_features = ml_scorer.predict_path_probability(current_path_features)
             # DB Lookup for Ground Truth
             tag_data = await self._check_vasp_tag(current_address)
             has_tag = tag_data is not None
             vasp_name = tag_data["label"] if has_tag else None
 
-            # Add Demo Mock Names if it doesn't have an exact tag
-            if not has_tag:
+            # Add Demo Mock Names if it doesn't have an exact tag but has massive volume
+            if not has_tag and tx_count > 10000:
                 import hashlib
                 mock_exchanges = ["Coinbase", "Huobi", "KuCoin", "OKX", "Bitfinex", "Gemini", "Bybit", "MEXC", "Gate.io"]
                 hash_val = int(hashlib.md5(current_address.encode()).hexdigest(), 16)
                 vasp_name = mock_exchanges[hash_val % len(mock_exchanges)] + " (Predicted)"
-            # 3. Proximity & Composite Scoring
-            prox_score = calculate_proximity_score(current_hop)
-            final_confidence = calculate_composite_score(prox_score, ml_prob, has_tag)
 
-            is_exchange = (final_confidence > 0.45 or has_tag) and not is_source
+            # Only flag as an exchange if it's a known database tag OR it has massive live volume (> 10000 txs)
+            is_exchange = (has_tag or tx_count > 10000) and not is_source
+            
+            # Since ML is removed, we hardcode confidence based on heuristics
+            final_confidence = 1.0 if is_exchange else 0.0
             
             node_details[current_address] = NodeDetails(
                 id=current_address,
@@ -85,7 +83,7 @@ class GraphEngine:
                 is_exchange=is_exchange,
                 vasp_name=vasp_name,
                 confidence_score=final_confidence,
-                shap_features=shap_features
+                shap_features={} # ML removed
             )
 
             if is_exchange:
@@ -94,7 +92,7 @@ class GraphEngine:
                     "vasp_name": vasp_name or "Unknown Exchange",
                     "confidence": final_confidence,
                     "hop": current_hop,
-                    "shap_features": shap_features
+                    "shap_features": {}
                 })
                 # Halt BFS on this branch because we found the exchange gateway
                 continue
@@ -143,7 +141,7 @@ class GraphEngine:
                 for next_addr in set(next_addresses): # deduplicate
                     if next_addr not in visited:
                         visited.add(next_addr)
-                        queue.append((next_addr, current_hop + 1, current_path_features))
+                        queue.append((next_addr, current_hop + 1))
                         graph.add_edge(current_address, next_addr)
                         links.append(EdgeDetails(source=current_address, target=next_addr, value=1.0))
 

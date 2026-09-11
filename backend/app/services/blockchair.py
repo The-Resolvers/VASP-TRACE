@@ -7,6 +7,16 @@ class BlockchainClient:
         self.client = httpx.AsyncClient()
         self.cache = {}
 
+    async def get_address_metadata(self, address: str) -> dict | None:
+        url = f"{self.base_url}/{address}"
+        try:
+            response = await self.client.get(url, timeout=10.0)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching live metadata for {address}: {e}")
+            return None
+
     async def get_address_details(self, address: str) -> dict | None:
         if address in self.cache:
             return self.cache[address]

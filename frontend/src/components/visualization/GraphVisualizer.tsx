@@ -79,6 +79,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({ data }) => {
       .attr('stroke', '#1e293b') // slate-800
       .attr('stroke-width', 2);
 
+    nodeGroup.append('title')
+      .text((d: any) => d.id);
+
     nodeGroup.append('text')
       .text((d: any) => {
         if (d.is_source) return 'Source';
@@ -90,7 +93,71 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({ data }) => {
       .attr('y', 4)
       .attr('fill', '#cbd5e1') // slate-300
       .attr('font-size', '10px')
-      .attr('font-family', 'monospace');
+      .attr('font-family', 'monospace')
+      .style('cursor', 'pointer')
+      .on('click', function(e, d: any) {
+        const el = d3.select(this);
+        const parent = d3.select(this.parentNode as any);
+        const copyBtn = parent.select('.copy-btn');
+        const currentText = el.text();
+        
+        // Toggle logic
+        if (currentText === d.id) {
+          // Revert to short name
+          if (d.is_source) el.text('Source');
+          else if (d.is_exchange) el.text(d.vasp_name || 'VASP');
+          else if (d.is_mixer) el.text('Mixer');
+          else el.text(d.id.substring(0, 6) + '...');
+          
+          copyBtn.style('display', 'none');
+        } else {
+          // Expand to full Bitcoin Address
+          el.text(d.id);
+          copyBtn.style('display', 'block');
+        }
+      });
+
+    // Lucide Icons SVG strings (paths only, no nested <svg> tags which break inside <g>)
+    const COPY_SVG = `<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>`;
+    const CHECK_SVG = `<path d="M20 6 9 17l-5-5"/>`;
+
+    // Clipboard icon (hidden by default)
+    nodeGroup.append('g')
+      .attr('class', 'copy-btn')
+      // translate positions the icon after the text, scale(0.5) shrinks it from 24x24 to 12x12
+      .attr('transform', (d: any) => `translate(${18 + (d.id.length * 6)}, -4) scale(0.5)`)
+      .style('cursor', 'pointer')
+      .style('display', 'none')
+      .attr('fill', 'none')
+      .attr('stroke', '#94a3b8') // slate-400
+      .attr('stroke-width', '2')
+      .attr('stroke-linecap', 'round')
+      .attr('stroke-linejoin', 'round')
+      .html(COPY_SVG)
+      .on('click', function(e, d: any) {
+         e.stopPropagation(); // Prevent the node drag/click from firing
+         
+         // Robust clipboard copy with fallback
+         if (navigator.clipboard && window.isSecureContext) {
+             navigator.clipboard.writeText(d.id);
+         } else {
+             const textArea = document.createElement("textarea");
+             textArea.value = d.id;
+             document.body.appendChild(textArea);
+             textArea.focus();
+             textArea.select();
+             try { document.execCommand('copy'); } catch (err) {}
+             document.body.removeChild(textArea);
+         }
+         
+         const btn = d3.select(this);
+         btn.attr('stroke', '#4ade80') // green-400
+            .html(CHECK_SVG);
+         setTimeout(() => {
+            btn.attr('stroke', '#94a3b8')
+               .html(COPY_SVG);
+         }, 1500);
+      });
 
     // Simulation tick updates
     simulation.on('tick', () => {
